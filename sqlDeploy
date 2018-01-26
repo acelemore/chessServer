@@ -1,0 +1,26 @@
+CREATE SCHEMA `chessServer` DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci ;
+
+CREATE TABLE `chessServer`.`users` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `usrname` VARCHAR(45) NOT NULL,
+  `usrpsw` VARCHAR(45) NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE INDEX `id_UNIQUE` (`id` ASC),
+  UNIQUE INDEX `usrname_UNIQUE` (`usrname` ASC));
+
+CREATE TABLE `chessServer`.`tokens` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `user` VARCHAR(45) NOT NULL,
+  `token` VARCHAR(45) NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE INDEX `user_UNIQUE` (`user` ASC),
+  UNIQUE INDEX `token_UNIQUE` (`token` ASC));
+
+CREATE TABLE `chessServer`.`players` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `player` VARCHAR(45) NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE INDEX `id_UNIQUE` (`id` ASC),
+  UNIQUE INDEX `player_UNIQUE` (`player` ASC));
+
+
