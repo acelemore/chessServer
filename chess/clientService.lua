@@ -12,6 +12,8 @@ id = tonumber(id)
 
 matching = false
 
+needDeleteToken = true
+
 --验证token 
 local function idToken(token)
     local sqlstr = string.format([[select * from tokens where token = '%s']],token)
@@ -28,6 +30,20 @@ local function idToken(token)
     end
 end
 
+local function closeService2()
+    sqlstr = string.format([[delete from players where player = '%s']],player)
+    coursor,errstring = conn:execute(sqlstr)
+    if errorstring then
+        print("sql"..errstring)
+    end
+    print("========Client Lobby Service Stop2========")
+    local args = {}
+    args["name"] = player
+    skynet.call(infoAddr,"lua","delete",args)
+    skynet.exit()
+    return nil
+end
+
 local function closeService()
     local sqlstr =string.format([[delete from tokens where username = '%s']],player)
     local coursor,errstring = conn:execute(sqlstr)
@@ -40,7 +56,11 @@ local function closeService()
         print("sql"..errstring)
     end
     print("========Client Lobby Service Stop========")
+    local args = {}
+    args["name"] = player
+    skynet.call(infoAddr,"lua","delete",args)
     skynet.exit()
+    return nil
 end
 --接受匹配处理函数
 local function match(challangerAddr)
@@ -60,12 +80,14 @@ local function ackMatch(room)
     local args = {}
     args["id"] = id
     skynet.call(room,"lua","joinSecond",args)
+    needDeleteToken = false
     socket.abandon(id)
     --socket.abandon(id)
     --local args = {}
     --args["name"] = player
     --skynet.call(infoAddr,"lua","delete",args)
     --skynet.exit()
+    return nil
 end
 
 --匹配拒绝
@@ -150,14 +172,14 @@ local function work(id)
                 local check = idToken(s["token"])
                 if check == "ok" then
                     if s["what"] == "ok" then
-                        print("=====debug=====")
                         local roomAddr = skynet.newservice("room",id)
                         socket.write(id,getStr.stdMsg("cmd=ack;what=ok;"))
                         socket.abandon(id)
                         local args = {}
                         args["room"] = roomAddr
-                        skynet.call(cAddr,"lua","ackMatch",args)
-                        closeService()
+                        skynet.send(cAddr,"lua","ackMatch",args)
+                        closeService2()
+                        return
                     else
                         skynet.call(cAddr,"lua","deMatch")
                         socket.write(id,getStr.stdMsg("cmd=ack;what=ok;"))
@@ -181,7 +203,9 @@ local function work(id)
             end
         else
             socket.close(id)
-            closeService()
+            if needDeleteToken == true then
+                closeService()
+            end
             return
         end
     end
@@ -190,6 +214,8 @@ end
 
 skynet.start(function()
     print("============Client Lobby Service Start===========")
+
+    infoAddr = skynet.queryservice("serviceInfo")
     skynet.fork(function()
         skynet.sleep(50)
         work(id)
@@ -206,8 +232,8 @@ skynet.start(function()
             elseif cmd == "ackMatch" then
                 local args = ...
                 local ret = ackMatch(args["room"])
-                skynet.ret(ret)
-                closeService()
+                skynet.ret(skynet.pack(ret))
+                closeService2()
             end
 
         end
